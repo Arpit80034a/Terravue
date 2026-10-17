@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TerraVue — Metric Elevation & 3D Flythrough</title>
+<link rel="stylesheet" href="/static/css/style.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== HEADER ===== -->
+  <header>
+    <div class="logo">Terra<span>Vue</span></div>
+    <div class="badge">SIH 2026</div>
+    <div class="badge" style="background:transparent;border:1px solid var(--border);color:var(--muted);">Pixel2Peak</div>
+    <div class="header-right">
+      <div id="status-dot"></div>
+      <div id="status-label">Idle</div>
+    </div>
+  </header>
+
+  <!-- ===== LEFT PANEL ===== -->
+  <aside id="left-panel">
+
+    <div class="panel-section">
+      <div class="section-title">Input</div>
+      <img id="preview-img" alt="preview"/>
+      <div id="drop-zone">
+        <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.tif,.tiff,.mp4,.avi,.mov"/>
+        <div class="drop-icon">🗺️</div>
+        <div class="drop-primary">Drop file or click to browse</div>
+        <div class="drop-secondary">JPG · PNG · GeoTIFF · MP4</div>
+      </div>
+      <button id="btn-camera">📷 Use Camera</button>
+      <div id="camera-wrap">
+        <video id="camera-video" autoplay muted playsinline></video>
+        <button id="btn-capture">📸 Capture Frame</button>
+        <button id="btn-stop-camera">✕ Stop Camera</button>
+      </div>
+      <button id="btn-process" disabled>⚡ Analyse Scene</button>
+      <div id="progress-wrap">
+        <div id="progress-bar-track"><div id="progress-bar-fill"></div></div>
+        <div id="progress-label">Initialising…</div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Overlays</div>
+      <div class="toggle-row">
+        <div class="toggle-label">Depth Heatmap<small>Plasma colourmap</small></div>
+        <div class="toggle" id="tog-depth"></div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label">Semantic Overlay<small>ADE20K classes</small></div>
+        <div class="toggle" id="tog-seg"></div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label">Confidence Map<small>Teal=high / Amber=low</small></div>
+        <div class="toggle" id="tog-conf"></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Legend</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:11px;">
+        <div style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#ffa528;display:inline-block"></span>Buildings</div>
+        <div style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#22c55e;display:inline-block"></span>Vegetation</div>
+        <div style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#94a3b8;display:inline-block"></span>Road</div>
+        <div style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#38bdf8;display:inline-block"></span>Water</div>
+        <div style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#a1662f;display:inline-block"></span>Terrain</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ===== RIGHT PANEL ===== -->
+  <main id="right-panel">
+    <div id="canvas-wrap">
+      <!-- Three.js renders here -->
+      <div class="empty-state" id="empty-state">
+        <div class="big-icon">🏔️</div>
+        <p>Upload an image to generate the 3D elevation model</p>
+      </div>
+      <canvas id="overlay-depth" class="overlay-canvas"></canvas>
+      <canvas id="overlay-seg"   class="overlay-canvas"></canvas>
+      <canvas id="overlay-conf"  class="overlay-canvas"></canvas>
+      <div id="canvas-labels">
+        <span class="chip teal" id="chip-calib" style="display:none"></span>
+        <span class="chip" id="chip-size"  style="display:none"></span>
+      </div>
+      <div id="flythrough-controls" style="display:none">
+        <button class="ctrl-btn" id="btn-fly">▶ Flythrough</button>
+        <button class="ctrl-btn" id="btn-reset-cam">⟳ Reset View</button>
+        <button class="ctrl-btn" id="btn-wireframe">⬡ Wireframe</button>
+      </div>
+    </div>
+
+    <!-- Result thumbnails -->
+    <div id="thumbs-row">
+      <div class="thumb-card">
+        <img id="thumb-depth" alt="Depth Heatmap"/>
+        <div class="thumb-title">Depth Heatmap</div>
+      </div>
+      <div class="thumb-card">
+        <img id="thumb-seg" alt="Segmentation"/>
+        <div class="thumb-title">Semantic Overlay</div>
+      </div>
+      <div class="thumb-card">
+        <img id="thumb-conf" alt="Confidence"/>
+        <div class="thumb-title">Confidence Map</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== STATS BAR ===== -->
+  <div id="stats-bar">
+    <div class="stat-item"><span class="stat-label">Min elev</span><span class="stat-value teal" id="stat-min">—</span></div>
+    <div class="stat-item"><span class="stat-label">Max elev</span><span class="stat-value teal" id="stat-max">—</span></div>
+    <div class="stat-item"><span class="stat-label">Mean elev</span><span class="stat-value" id="stat-mean">—</span></div>
+    <div class="stat-item"><span class="stat-label">Confidence</span><span class="stat-value amber" id="stat-conf">—</span></div>
+    <div class="stat-item"><span class="stat-label">Calibration</span><span class="stat-value" id="stat-calib">—</span></div>
+    <div class="stat-item"><span class="stat-label">Buildings</span><span class="stat-value" id="stat-bld">—</span></div>
+    <div class="stat-item"><span class="stat-label">Vegetation</span><span class="stat-value" id="stat-veg">—</span></div>
+    <div class="stat-item"><span class="stat-label">Water</span><span class="stat-value" id="stat-water">—</span></div>
+    <div class="stat-item"><span class="stat-label">Road</span><span class="stat-value" id="stat-road">—</span></div>
+  </div>
+
+</div><!-- #app -->
+
+<div id="toast"></div>
+
+<!-- Three.js CDN -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

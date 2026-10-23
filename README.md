@@ -1,4 +1,4 @@
-# TeraVue
+# TerraVue
 ### From Monocular Vision to Geospatial 3D Understanding
 
 **TeraVue** is a computer vision and remote-sensing project focused on transforming aerial and satellite RGB imagery into depth-informed elevation maps and 3D representations of the Earth's surface. It aims to bridge the gap between relative monocular depth estimation and metrically meaningful terrain and building-height information.
